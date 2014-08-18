@@ -42,11 +42,15 @@ class TinyMysql
 
     /**
      * @param $rowQuery
-     * @return bool|\mysqli_result
      * @throws TinyMysqlExecuteError
+     * @throws TinyMysqlEmptyConnectionError
+     * @return bool|\mysqli_result
      */
     public function query($rowQuery)
     {
+        if (is_null(self::$connection)) {
+            throw new TinyMysqlEmptyConnectionError();
+        }
         $query = self::$connection->real_escape_string($rowQuery);
         $result = self::$connection->query($query);
         self::$connection->close();
