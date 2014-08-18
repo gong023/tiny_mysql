@@ -25,7 +25,7 @@ $mysqli_result = TinyMysql::execute(
 ```
 or
 ```php
-$singleton_connection = TinyMysql::getConnection($host, $user, $password, $database, $port, $socket);
+$singleton_connection = TinyMysql::getInstance($host, $user, $password, $database, $port, $socket);
 $mysqli_result = $singleton_connection->query('mysql query');
 ```
 

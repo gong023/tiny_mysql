@@ -16,9 +16,39 @@ namespace TinyMysql;
 class TinyMysql
 {
     /**
-     * @var \mysqli|null
+     * @var TinyMysql
      */
-    private static $connection = null;
+    private static $instance = null;
+
+    /**
+     * @var string
+     */
+    private $host;
+
+    /**
+     * @var string
+     */
+    private $pass;
+
+    /**
+     * @var string
+     */
+    private $user;
+
+    /**
+     * @var string
+     */
+    private $database;
+
+    /**
+     * @var int
+     */
+    private $port;
+
+    /**
+     * @var string
+     */
+    private $socket;
 
     /**
      * ここprivateにしたいしmysqli継承できない
@@ -32,31 +62,35 @@ class TinyMysql
      * @throws TinyMysqlConnectionError
      */
     private function __construct($host, $user, $pass, $database, $port, $socket) {
-        try {
-            self::$connection = new \mysqli($host, $user, $pass, $database, $port, $socket);
-        } catch (\Exception $e) {
-            // http://php.net/manual/ja/mysqli.construct.php とかのサンプルコードだとエラー拾えない
-            throw new TinyMysqlConnectionError($e->getMessage());
-        }
+        $this->host = $host;
+        $this->user = $user;
+        $this->pass = $pass;
+        $this->database = $database;
+        $this->port = $port;
+        $this->socket = $socket;
     }
 
     /**
      * @param $rowQuery
+     * @throws TinyMysqlConnectionError
      * @throws TinyMysqlExecuteError
-     * @throws TinyMysqlEmptyConnectionError
      * @return bool|\mysqli_result
      */
     public function query($rowQuery)
     {
-        if (is_null(self::$connection)) {
-            throw new TinyMysqlEmptyConnectionError();
+        try {
+            $connection = new \mysqli($this->host, $this->user, $this->pass, $this->database, $this->port, $this->socket);
+        } catch (\Exception $e) {
+            // http://php.net/manual/ja/mysqli.construct.php とかのサンプルコードだとエラー拾えない
+            throw new TinyMysqlConnectionError($e->getMessage());
         }
-        $query = self::$connection->real_escape_string($rowQuery);
-        $result = self::$connection->query($query);
-        self::$connection->close();
-        self::$connection = null;
+
+        $query = $connection->real_escape_string($rowQuery);
+        $result = $connection->query($query);
+        $connection->close();
+        self::$instance = null;
         if (! $result) {
-            throw new TinyMysqlExecuteError('Execute Error :' . self::$connection->error);
+            throw new TinyMysqlExecuteError($connection->error);
         }
 
         return $result;
@@ -71,13 +105,13 @@ class TinyMysql
      * @param $socket
      * @return \mysqli|null|TinyMysql
      */
-    public static function getConnection($host, $user, $pass, $database, $port, $socket)
+    public static function getInstance($host, $user, $pass, $database, $port, $socket)
     {
-        if (is_null(self::$connection)) {
+        if (is_null(self::$instance)) {
             return new self($host, $user, $pass, $database, $port, $socket);
         }
 
-        return self::$connection;
+        return self::$instance;
     }
 
     /**
@@ -90,16 +124,8 @@ class TinyMysql
      * @param $socket
      * @return bool|\mysqli_result
      */
-    public static function execute(
-        $rowQuery,
-        $host,
-        $user,
-        $pass,
-        $database,
-        $port,
-        $socket
-    ) {
-        $instance = self::getConnection($host, $user, $pass, $database, $port, $socket);
+    public static function execute($rowQuery, $host, $user, $pass, $database, $port, $socket) {
+        $instance = self::getInstance($host, $user, $pass, $database, $port, $socket);
 
         return $instance->query($rowQuery);
     }
