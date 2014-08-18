@@ -17,9 +17,18 @@ class TinyMysqlTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @test
+     * @expectedException \TinyMysql\TinyMysqlConnectionError
      */
-    public function first()
+    public function connectionError()
     {
-        $this->assertTrue(TinyMysql::execute());
+        TinyMysql::execute(
+            'show create table table;',
+            'localhost',
+            'root',
+            'invalid password',
+            'database',
+            '3306',
+            '/tmp/mysql.sock'
+        );
     }
 }
